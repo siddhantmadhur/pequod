@@ -1,0 +1,5 @@
+port = 8080
+secret_key = "O3uuM3YUGdvNobmkh0tif4zxRZmgKbZsYyEdklqyU7B"
+finished_wizard = false
+persistent_dir = "/Users/siddhantmadhur/projects/pequod/tmp"
+cache_dir = ""
