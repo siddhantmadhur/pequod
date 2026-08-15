@@ -7,15 +7,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// Use this middleware to log HTTP requests
+// Logger provides structured request logging for Echo HTTP routes.
 func Logger(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		cur := time.Now()
-		res := next(c)
-		don := time.Since(cur)
+		start := time.Now()
+		err := next(c)
+		latency := time.Since(start)
 
-		log.Printf("[%s] %d - %s (%s) \n", c.Request().Method, c.Response().Status, c.Request().RequestURI, don.String())
-
-		return res
+		log.Printf("[%s] %d - %s (%s) \n", c.Request().Method, c.Response().Status, c.Request().RequestURI, latency.String())
+		return err
 	}
 }
