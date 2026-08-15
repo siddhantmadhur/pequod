@@ -8,6 +8,7 @@ import (
 	"github.com/siddhantmadhur/pequod/internal/config"
 	"github.com/siddhantmadhur/pequod/internal/handlers"
 	"github.com/siddhantmadhur/pequod/internal/middleware"
+	"github.com/siddhantmadhur/pequod/internal/services"
 )
 
 type Server struct {
@@ -15,22 +16,42 @@ type Server struct {
 	Config *config.Config
 }
 
-func New(cfg *config.Config) *Server {
+type ServerParams struct {
+	Config         *config.Config
+	AuthService    services.AuthService
+	ServerService  services.ServerService
+	LibraryService services.LibraryService
+	MediaService   services.MediaService
+}
+
+func New(params ServerParams) *Server {
 	e := echo.New()
 
 	e.Use(middleware.Logger)
-
 	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:5173"},
-		//AllowMethods: []string{"POST", "GET", "UPDATE", "DELETE"},
 		AllowHeaders: []string{"Client-Name", "Content-Type", "Authorization"},
 	}))
 
-	handlers.RegisterRoutes(e, cfg)
+	authMw := middleware.NewAuthMiddleware(params.AuthService, params.ServerService)
+
+	authHandler := handlers.NewAuthHandler(params.AuthService, params.ServerService)
+	serverHandler := handlers.NewServerHandler(params.ServerService, params.LibraryService)
+	libraryHandler := handlers.NewLibraryHandler(params.LibraryService)
+	mediaHandler := handlers.NewMediaHandler(params.MediaService)
+
+	handlers.RegisterRoutes(handlers.RouteConfig{
+		Echo:           e,
+		AuthHandler:    authHandler,
+		ServerHandler:  serverHandler,
+		LibraryHandler: libraryHandler,
+		MediaHandler:   mediaHandler,
+		AuthMiddleware: authMw,
+	})
 
 	return &Server{
 		Echo:   e,
-		Config: cfg,
+		Config: params.Config,
 	}
 }
 
