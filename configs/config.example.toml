@@ -1,0 +1,5 @@
+port = 8080
+secret_key = "your-secret-key"
+finished_wizard = false
+persistent_dir = "/data"
+cache_dir = "/cache"
