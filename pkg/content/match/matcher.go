@@ -1,24 +1,42 @@
 package matcher
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 
 	"github.com/siddhantmadhur/pequod/pkg/content"
 )
 
+var (
+	seasonRegex  = regexp.MustCompile(`(?i)(?:s|season\s*)([0-9]+)`)
+	episodeRegex = regexp.MustCompile(`(?i)(?:e|episode\s*)([0-9]+)`)
+	digitsRegex  = regexp.MustCompile(`[0-9]+`)
+)
+
 func SeriesData(fullPath string) (content.Show, error) {
 	var show content.Show
 
-	seasonString, err := regexp.Compile(`(S[0-9]{2,})|(Season\s[0-9]{1,})`)
-	num, err := regexp.Compile(`[0-9]+`)
-	if err != nil {
-		return show, err
+	seasonMatch := seasonRegex.FindString(fullPath)
+	if seasonMatch != "" {
+		if numStr := digitsRegex.FindString(seasonMatch); numStr != "" {
+			if sNum, err := strconv.Atoi(numStr); err == nil {
+				show.SeasonNumber = sNum
+			}
+		}
 	}
 
-	show.SeasonNumber, err = strconv.Atoi(num.FindString(seasonString.String()))
-	if err != nil {
-		return show, err
+	episodeMatch := episodeRegex.FindString(fullPath)
+	if episodeMatch != "" {
+		if numStr := digitsRegex.FindString(episodeMatch); numStr != "" {
+			if epNum, err := strconv.Atoi(numStr); err == nil {
+				show.EpisodeNumber = epNum
+			}
+		}
+	}
+
+	if show.SeasonNumber == 0 && show.EpisodeNumber == 0 {
+		return show, errors.New("no season or episode information found in path")
 	}
 
 	return show, nil

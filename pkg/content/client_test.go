@@ -1,7 +1,6 @@
 package content_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -10,19 +9,19 @@ import (
 )
 
 func TestTMDBClient(t *testing.T) {
-	client, err := content.NewClient(tmdb.Client{
-		ApiKey: os.Getenv("TMDB_READ_TOKEN"),
-	})
-
-	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+	readToken := os.Getenv("TMDB_READ_TOKEN")
+	if readToken == "" {
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external integration test.")
 	}
 
-	authenticate := client.Authenticate()
+	client, err := content.NewClient(tmdb.Client{
+		ApiKey: readToken,
+	})
+	if err != nil {
+		t.Fatalf("unexpected client init error: %v", err)
+	}
 
-	if !authenticate {
-		fmt.Printf("[ERROR]: Could not authenticate client\n")
-		t.FailNow()
+	if !client.Authenticate() {
+		t.Fatal("could not authenticate client with TMDB")
 	}
 }

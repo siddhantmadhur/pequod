@@ -1,7 +1,6 @@
 package tmdb
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -11,8 +10,7 @@ import (
 func TestFetch(t *testing.T) {
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
@@ -29,37 +27,29 @@ func TestFetch(t *testing.T) {
 	}, &result)
 
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+		t.Fatalf("unexpected fetch error: %v", err)
 	}
 
 	if result.Title != "Star Wars" {
-		fmt.Printf("[ERROR]: \nExpected: Star Wars \nGot: %s \n", result.Title)
-
-		t.FailNow()
+		t.Fatalf("expected Star Wars, got %s", result.Title)
 	}
 }
 
 func TestGetFromId(t *testing.T) {
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
 	tmdb.ApiKey = readToken
 
 	result, err := tmdb.GetFromId(11)
-
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+		t.Fatalf("unexpected GetFromId error: %v", err)
 	}
 
 	if result.Title != "Star Wars" {
-		fmt.Printf("[ERROR]: Title does not match Star Wars\n")
-		t.FailNow()
+		t.Fatalf("expected Star Wars, got %s", result.Title)
 	}
-
 }

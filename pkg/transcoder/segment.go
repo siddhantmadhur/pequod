@@ -26,12 +26,14 @@ func (s *Segment) AddNewSegment(newSegmentNo int64) error {
 		return errors.New("segment not found")
 	}
 
-	var newSegment Segment
-	newSegment.EndSegment = cur.EndSegment
-	newSegment.StartSegment = newSegmentNo
+	newSegment := &Segment{
+		StartSegment: newSegmentNo,
+		EndSegment:   cur.EndSegment,
+		NextSegment:  cur.NextSegment,
+		Lock:         s.Lock,
+	}
 	cur.EndSegment = newSegmentNo - 1
-	newSegment.NextSegment = cur.NextSegment
-	cur.NextSegment = &newSegment
+	cur.NextSegment = newSegment
 
 	return nil
 }

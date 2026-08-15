@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -19,6 +18,13 @@ import (
 	"github.com/siddhantmadhur/pequod/pkg/content"
 	"github.com/siddhantmadhur/pequod/pkg/content/tmdb"
 	"github.com/siddhantmadhur/pequod/pkg/transcoder"
+)
+
+var (
+	queryFilterRegex = regexp.MustCompile(`^[a-zA-Z0-9_ ]+`)
+	digitsRegex      = regexp.MustCompile(`[0-9]+`)
+	seasonMatchRegex = regexp.MustCompile(`(?i)(?:s|season\s*)([0-9]+)`)
+	epMatchRegex     = regexp.MustCompile(`(?i)(?:e|episode\s*)([0-9]+)`)
 )
 
 type ScannerService interface {
@@ -43,11 +49,6 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 		return err
 	}
 
-	queryFilter, err := regexp.Compile(`^[a-zA-Z0-9_ ]+`)
-	if err != nil {
-		return err
-	}
-
 	if lib.MediaType == "series" {
 		showFiles, err := os.ReadDir(lib.DevicePath)
 		if err != nil {
@@ -62,7 +63,7 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 			fullPath := filepath.Join(lib.DevicePath, showFile.Name())
 			contentFile, err := s.contentRepo.GetByPath(ctx, fullPath)
 			if err != nil {
-				cleanedName := queryFilter.FindString(strings.ReplaceAll(showFile.Name(), ".", " "))
+				cleanedName := queryFilterRegex.FindString(strings.ReplaceAll(showFile.Name(), ".", " "))
 				results, searchErr := client.SearchShows(content.SearchParam{
 					Query: cleanedName,
 				})
@@ -82,6 +83,10 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 					}
 				} else {
 					bestResult := results.Results[0]
+					var coverUrl sql.NullString
+					if bestResult.PosterPath != "" {
+						coverUrl = sql.NullString{String: "https://image.tmdb.org/t/p/w500/" + bestResult.PosterPath, Valid: true}
+					}
 					contentFile, err = s.contentRepo.Create(ctx, repository.CreateContentParams{
 						MediaLibraryID:     lib.ID,
 						CreatedAt:          time.Now(),
@@ -90,7 +95,7 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 						MediaType:          "series",
 						Classifier:         "show",
 						MediaTitle:         bestResult.Name,
-						CoverUrl:           sql.NullString{String: "https://image.tmdb.org/t/p/w500/" + bestResult.PosterPath, Valid: true},
+						CoverUrl:           coverUrl,
 						Description:        sql.NullString{String: bestResult.Overview, Valid: true},
 						ExternalProvider:   sql.NullString{String: "tmdb", Valid: true},
 						ExternalProviderID: sql.NullInt64{Int64: int64(bestResult.Id), Valid: true},
@@ -120,7 +125,7 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 			movieContent, err := s.contentRepo.GetByPath(ctx, childPath)
 			if err != nil {
 				results, searchErr := client.SearchMovies(content.SearchParam{
-					Query: queryFilter.FindString(movie.Name()),
+					Query: queryFilterRegex.FindString(movie.Name()),
 				})
 
 				if searchErr != nil || len(results.Results) == 0 {
@@ -135,6 +140,10 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 					})
 				} else {
 					bestResult := results.Results[0]
+					var coverUrl sql.NullString
+					if bestResult.PosterPath != "" {
+						coverUrl = sql.NullString{String: "https://image.tmdb.org/t/p/w500/" + bestResult.PosterPath, Valid: true}
+					}
 					movieContent, err = s.contentRepo.Create(ctx, repository.CreateContentParams{
 						MediaLibraryID:     lib.ID,
 						CreatedAt:          time.Now(),
@@ -142,7 +151,7 @@ func (s *scannerService) ScanLibrary(ctx context.Context, lib *domain.MediaLibra
 						Name:               movie.Name(),
 						MediaTitle:         bestResult.Title,
 						Description:        sql.NullString{String: bestResult.Overview, Valid: true},
-						CoverUrl:           sql.NullString{String: "https://image.tmdb.org/t/p/w500/" + bestResult.PosterPath, Valid: true},
+						CoverUrl:           coverUrl,
 						Classifier:         "movie",
 						MediaType:          "movies",
 						ExternalProvider:   sql.NullString{String: "tmdb", Valid: true},
@@ -231,26 +240,23 @@ func (s *scannerService) scanShowForVideos(ctx context.Context, currentPath stri
 }
 
 func parseShowInfo(fullPath, name string) (string, int, int, error) {
-	tokens := strings.Split(fullPath, "/")
-	if len(tokens) < 3 {
-		return "", 0, 0, errors.New("not enough path information")
+	seasonString := seasonMatchRegex.FindString(fullPath)
+	episodeString := epMatchRegex.FindString(name)
+
+	seasonNo := 1
+	if seasonString != "" {
+		if s, err := strconv.Atoi(digitsRegex.FindString(seasonString)); err == nil {
+			seasonNo = s
+		}
 	}
 
-	getNumber := regexp.MustCompile(`[0-9]+`)
-	getSeasonString := regexp.MustCompile(`s[0-9]+|S[0-9]+|Season [0-9]+`)
-	getEpisodeString := regexp.MustCompile(`e[0-9]+|E[0-9]+|Episode [0-9]+`)
-
-	seasonString := getSeasonString.FindString(fullPath)
-	episodeString := getEpisodeString.FindString(name)
-
-	season, err := strconv.Atoi(getNumber.FindString(seasonString))
-	if err != nil {
-		return "", 0, 0, err
-	}
-	episode, err := strconv.Atoi(getNumber.FindString(episodeString))
-	if err != nil {
-		return "", 0, 0, err
+	episodeNo := 1
+	if episodeString != "" {
+		if ep, err := strconv.Atoi(digitsRegex.FindString(episodeString)); err == nil {
+			episodeNo = ep
+		}
 	}
 
-	return strings.ReplaceAll(tokens[1], ".", " "), season, episode, nil
+	showDir := filepath.Base(filepath.Clean(fullPath))
+	return strings.ReplaceAll(showDir, ".", " "), seasonNo, episodeNo, nil
 }

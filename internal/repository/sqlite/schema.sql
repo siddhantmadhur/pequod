@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     id INTEGER PRIMARY KEY,
     username text NOT NULL,
     password BLOB,
-    type INTEGER NOT NULL
+    type INTEGER NOT NULL,
+    UNIQUE(username)
 );
 
 CREATE TABLE IF NOT EXISTS sessions (

@@ -2,8 +2,9 @@ package config
 
 import (
 	"crypto/rand"
-	"crypto/rsa"
+	"encoding/hex"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -18,11 +19,27 @@ type Config struct {
 	Mutex          *sync.Mutex `toml:"-"`
 }
 
+func generateRandomSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
 func (c *Config) Write() error {
+	if c.PersistentDir == "" {
+		if os.Getenv("PERSISTENT_DATA") != "" {
+			c.PersistentDir = os.Getenv("PERSISTENT_DATA")
+		} else {
+			c.PersistentDir = "/data"
+		}
+	}
+
 	if err := os.MkdirAll(c.PersistentDir, 0755); err != nil {
 		return err
 	}
-	f, err := os.Create(c.PersistentDir + "/config.toml")
+	f, err := os.Create(filepath.Join(c.PersistentDir, "config.toml"))
 	if err != nil {
 		return err
 	}
@@ -31,25 +48,36 @@ func (c *Config) Write() error {
 }
 
 func (c *Config) Read() error {
-	file, err := os.ReadFile(c.PersistentDir + "/config.toml")
+	if c.PersistentDir == "" {
+		if os.Getenv("PERSISTENT_DATA") != "" {
+			c.PersistentDir = os.Getenv("PERSISTENT_DATA")
+		} else {
+			c.PersistentDir = "/data"
+		}
+	}
+
+	configFilePath := filepath.Join(c.PersistentDir, "config.toml")
+	file, err := os.ReadFile(configFilePath)
 	if err != nil {
-		key, err := rsa.GenerateKey(rand.Reader, 32*8)
+		secret, err := generateRandomSecret()
 		if err != nil {
 			return err
 		}
 
+		cacheDir := os.Getenv("CACHE_DIR")
+		if cacheDir == "" {
+			cacheDir = filepath.Join(c.PersistentDir, "cache")
+		}
+
 		defaultConfig := Config{
 			Port:           8080,
-			SecretKey:      key.PublicKey.N.Text(62),
+			SecretKey:      secret,
 			FinishedWizard: false,
+			PersistentDir:  c.PersistentDir,
+			CacheDir:       cacheDir,
 			Mutex:          &sync.Mutex{},
 		}
 
-		if os.Getenv("PERSISTENT_DATA") != "" {
-			defaultConfig.PersistentDir = os.Getenv("PERSISTENT_DATA")
-		} else {
-			defaultConfig.PersistentDir = "/data"
-		}
 		if err := defaultConfig.Write(); err != nil {
 			return err
 		}
@@ -59,6 +87,10 @@ func (c *Config) Read() error {
 
 	if err := toml.Unmarshal(file, c); err != nil {
 		return err
+	}
+
+	if c.CacheDir == "" {
+		c.CacheDir = filepath.Join(c.PersistentDir, "cache")
 	}
 
 	c.Mutex = &sync.Mutex{}

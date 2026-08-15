@@ -1,7 +1,6 @@
 package tmdb
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -11,8 +10,7 @@ import (
 func TestSearchMovie(t *testing.T) {
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
@@ -22,26 +20,22 @@ func TestSearchMovie(t *testing.T) {
 		Query: "star wars empire strikes back",
 	})
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+		t.Fatalf("unexpected search error: %v", err)
 	}
 
 	if len(res.Results) == 0 {
-		fmt.Printf("[ERROR]: Did not get any results\n")
-		t.FailNow()
+		t.Fatal("did not get any results")
 	}
 
 	if res.Results[0].Title != "The Empire Strikes Back" {
-		fmt.Printf("[ERROR]: Name does not match\n")
-		t.FailNow()
+		t.Fatalf("expected The Empire Strikes Back, got %s", res.Results[0].Title)
 	}
 }
 
 func TestSearchShows(t *testing.T) {
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
@@ -51,22 +45,18 @@ func TestSearchShows(t *testing.T) {
 		Query: "modern family",
 	})
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+		t.Fatalf("unexpected search error: %v", err)
 	}
 
 	if len(res.Results) == 0 {
-		fmt.Printf("[ERROR]: Did not get any results\n")
-		t.FailNow()
+		t.Fatal("did not get any results")
 	}
-
 }
 
 func TestGetSeasonInfo(t *testing.T) {
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
@@ -74,12 +64,10 @@ func TestGetSeasonInfo(t *testing.T) {
 
 	res, err := tmdb.GetSeasonInformation(76479, 2)
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		t.FailNow()
+		t.Fatalf("unexpected season fetch error: %v", err)
 	}
 
 	if res.Name != "Season 2" {
-		t.FailNow()
+		t.Fatalf("expected Season 2, got %s", res.Name)
 	}
-
 }
