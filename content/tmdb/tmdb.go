@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"ocelot/content"
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 type Client struct {

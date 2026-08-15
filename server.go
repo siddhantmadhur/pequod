@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"ocelot/config"
 	"os"
+
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

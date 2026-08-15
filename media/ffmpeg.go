@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"ocelot/config"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/google/uuid"
 )

@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"ocelot/auth"
-	"ocelot/config"
-	"ocelot/storage"
 	"regexp"
 	"strconv"
+
+	"github.com/siddhantmadhur/pequod/auth"
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/storage"
 
 	"github.com/labstack/echo/v4"
 )

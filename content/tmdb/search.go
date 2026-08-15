@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ocelot/content"
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 func (t Client) SearchMovies(param content.SearchParam) (content.MovieSearchResponse, error) {

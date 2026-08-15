@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
-	"ocelot/config"
 	"os"
+
+	"github.com/siddhantmadhur/pequod/config"
 
 	_ "github.com/mattn/go-sqlite3"
 )

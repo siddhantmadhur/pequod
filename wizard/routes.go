@@ -2,7 +2,8 @@ package wizard
 
 import (
 	"net/http"
-	"ocelot/config"
+
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/labstack/echo/v4"
 )

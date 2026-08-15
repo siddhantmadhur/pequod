@@ -1,4 +1,4 @@
-module ocelot
+module github.com/siddhantmadhur/pequod
 
 go 1.22.3
 

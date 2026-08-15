@@ -1,6 +1,6 @@
 package tmdb
 
-import "ocelot/content"
+import "github.com/siddhantmadhur/pequod/content"
 
 func (t Client) Authenticate() bool {
 	var response struct {

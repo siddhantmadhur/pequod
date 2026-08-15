@@ -2,8 +2,9 @@ package storage
 
 import (
 	"database/sql"
-	"ocelot/config"
 	"os"
+
+	"github.com/siddhantmadhur/pequod/config"
 )
 
 func GetConn(cfg *config.Config) (*sql.DB, *Queries, error) {

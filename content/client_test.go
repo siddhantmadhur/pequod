@@ -2,9 +2,10 @@ package content
 
 import (
 	"fmt"
-	"ocelot/content/tmdb"
 	"os"
 	"testing"
+
+	"github.com/siddhantmadhur/pequod/content/tmdb"
 )
 
 func TestTMDBClient(t *testing.T) {

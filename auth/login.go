@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"ocelot/config"
-	"ocelot/storage"
 	"time"
+
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/storage"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"

@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"ocelot/content"
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 func SeriesData(fullPath string) (content.Show, error) {

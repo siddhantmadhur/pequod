@@ -2,11 +2,12 @@ package main
 
 import (
 	"log"
-	"ocelot/auth"
-	"ocelot/config"
-	"ocelot/library"
-	"ocelot/media"
-	"ocelot/wizard"
+
+	"github.com/siddhantmadhur/pequod/auth"
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/library"
+	"github.com/siddhantmadhur/pequod/media"
+	"github.com/siddhantmadhur/pequod/wizard"
 
 	"github.com/labstack/echo/v4"
 )

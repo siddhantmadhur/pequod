@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"ocelot/content"
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 func TestSearchMovie(t *testing.T) {

@@ -2,9 +2,10 @@ package tmdb
 
 import (
 	"fmt"
-	"ocelot/content"
 	"os"
 	"testing"
+
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 func TestFetch(t *testing.T) {

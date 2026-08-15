@@ -3,8 +3,9 @@ package auth
 import (
 	"context"
 	"net/http"
-	"ocelot/config"
-	"ocelot/storage"
+
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/storage"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"

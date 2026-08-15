@@ -3,10 +3,11 @@ package library
 import (
 	"context"
 	"fmt"
-	"ocelot/auth"
-	"ocelot/config"
-	"ocelot/storage"
 	"time"
+
+	"github.com/siddhantmadhur/pequod/auth"
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/storage"
 
 	"github.com/labstack/echo/v4"
 )

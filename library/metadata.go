@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"ocelot/config"
-	"ocelot/content"
-	"ocelot/content/tmdb"
-	"ocelot/storage"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/content"
+	"github.com/siddhantmadhur/pequod/content/tmdb"
+	"github.com/siddhantmadhur/pequod/storage"
 )
 
 func ScanMediaFiles(library storage.MediaLibrary, cfg *config.Config) error {

@@ -1,7 +1,7 @@
 package wizard
 
 import (
-	"ocelot/config"
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/labstack/echo/v4"
 )

@@ -2,10 +2,11 @@ package library
 
 import (
 	"fmt"
-	"ocelot/auth"
-	"ocelot/config"
 	"os"
 	"strings"
+
+	"github.com/siddhantmadhur/pequod/auth"
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/labstack/echo/v4"
 )

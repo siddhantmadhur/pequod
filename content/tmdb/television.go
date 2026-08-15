@@ -2,7 +2,8 @@ package tmdb
 
 import (
 	"fmt"
-	"ocelot/content"
+
+	"github.com/siddhantmadhur/pequod/content"
 )
 
 func (t Client) GetSeasonInformation(seriesId int, seasonNo int) (content.SeriesDetails, error) {

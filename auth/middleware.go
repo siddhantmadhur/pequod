@@ -2,8 +2,9 @@ package auth
 
 import (
 	"errors"
-	"ocelot/config"
 	"strconv"
+
+	"github.com/siddhantmadhur/pequod/config"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"

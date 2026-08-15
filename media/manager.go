@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"ocelot/auth"
-	"ocelot/config"
-	"ocelot/storage"
 	"strconv"
 	"sync"
+
+	"github.com/siddhantmadhur/pequod/auth"
+	"github.com/siddhantmadhur/pequod/config"
+	"github.com/siddhantmadhur/pequod/storage"
 
 	"github.com/labstack/echo/v4"
 )
