@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/siddhantmadhur/pequod/internal/domain"
 	"github.com/siddhantmadhur/pequod/internal/repository"
@@ -64,7 +64,7 @@ func (s *authService) Login(ctx context.Context, username, password, device, dev
 	}
 
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
-		// Log or handle session creation error if needed
+		// Log session creation error if needed
 	}
 
 	return tokens, nil
@@ -72,6 +72,9 @@ func (s *authService) Login(ctx context.Context, username, password, device, dev
 
 func (s *authService) RefreshToken(ctx context.Context, refreshTokenString string) (*domain.TokenPair, error) {
 	token, err := jwt.Parse(refreshTokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return []byte(s.secretKey), nil
 	})
 	if err != nil || !token.Valid {
@@ -84,7 +87,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshTokenString strin
 	}
 
 	username, ok := claims["username"].(string)
-	if !ok {
+	if !ok || username == "" {
 		return nil, domain.ErrUnauthorized
 	}
 
@@ -101,7 +104,7 @@ func (s *authService) CreateUser(ctx context.Context, currentUser *domain.User, 
 		return domain.ErrInvalidInput
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return err
 	}
@@ -133,6 +136,9 @@ func (s *authService) CreateUser(ctx context.Context, currentUser *domain.User, 
 
 func (s *authService) ValidateToken(tokenString string) (*domain.User, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return []byte(s.secretKey), nil
 	})
 	if err != nil || !token.Valid {
@@ -148,24 +154,34 @@ func (s *authService) ValidateToken(tokenString string) (*domain.User, error) {
 	uidStr, _ := claims["uid"].(string)
 	uid, _ := strconv.ParseInt(uidStr, 10, 64)
 
+	var permLevel int
+	if permVal, ok := claims["perm"].(float64); ok {
+		permLevel = int(permVal)
+	}
+
 	return &domain.User{
-		UID:          uid,
-		Username:     username,
-		AccessToken:  tokenString,
-		RefreshToken: "",
+		UID:             uid,
+		Username:        username,
+		AccessToken:     tokenString,
+		RefreshToken:    "",
+		PermissionLevel: permLevel,
 	}, nil
 }
 
 func (s *authService) generateTokens(profile *domain.Profile) (*domain.TokenPair, error) {
+	now := time.Now()
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": profile.Username,
 		"uid":      fmt.Sprint(profile.ID),
-		"exp":      time.Now().Add(time.Minute * 20).Unix(),
+		"perm":     profile.Type,
+		"iat":      now.Unix(),
+		"exp":      now.Add(time.Minute * 20).Unix(),
 	})
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": profile.Username,
 		"uid":      fmt.Sprint(profile.ID),
-		"exp":      time.Now().Add(time.Hour * 300).Unix(),
+		"iat":      now.Unix(),
+		"exp":      now.Add(time.Hour * 300).Unix(),
 	})
 
 	accessStr, err := accessToken.SignedString([]byte(s.secretKey))

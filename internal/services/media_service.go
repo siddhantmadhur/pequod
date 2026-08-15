@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/siddhantmadhur/pequod/internal/config"
 	"github.com/siddhantmadhur/pequod/internal/domain"
@@ -67,9 +68,9 @@ func (s *mediaService) GetPlaybackInfo(ctx context.Context, mediaID int64, prese
 	s.mu.Unlock()
 
 	go session.Start()
-	for !session.DoesSegmentExist(playbackSeconds / 2) {
+	if !session.WaitForSegment(playbackSeconds/2, 10*time.Second) {
+		return nil, fmt.Errorf("timeout waiting for initial transcode segment")
 	}
-	go session.TrackSegmentList()
 
 	return &domain.PlaybackInfoResponse{
 		SessionID: session.ID,
@@ -102,10 +103,13 @@ func (s *mediaService) GetStreamFile(sessionID string, segmentNo int64) (string,
 	}
 
 	if !session.DoesSegmentExist(segmentNo) {
-		_ = session.SkipTo(segmentNo)
+		if err := session.SkipTo(segmentNo); err != nil {
+			return "", err
+		}
 	}
 
-	for !session.DoesSegmentExist(segmentNo) {
+	if !session.WaitForSegment(segmentNo, 10*time.Second) {
+		return "", domain.ErrNotFound
 	}
 
 	return fmt.Sprintf("%s/master%d.ts", session.TranscodePath, segmentNo), nil

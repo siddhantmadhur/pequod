@@ -131,4 +131,33 @@ func TestAuthService_LoginAndValidation(t *testing.T) {
 	if refreshed.AccessToken == "" {
 		t.Fatal("expected refreshed access token")
 	}
+
+	// 5. Test Permission Check in CreateUser
+	regularUser := &domain.User{
+		UID:             2,
+		Username:        "regular",
+		PermissionLevel: 1, // Non-admin
+	}
+	adminUser := &domain.User{
+		UID:             1,
+		Username:        "admin",
+		PermissionLevel: 0, // Admin
+	}
+
+	err = authService.CreateUser(context.Background(), regularUser, "newuser", "pass123", 1, false)
+	if err != domain.ErrForbidden {
+		t.Fatalf("expected ErrForbidden for non-admin user creating user, got: %v", err)
+	}
+
+	err = authService.CreateUser(context.Background(), adminUser, "newuser", "pass123", 1, false)
+	if err != nil {
+		t.Fatalf("expected admin user to create user successfully, got: %v", err)
+	}
+
+	// 6. Test Invalid / Tampered Token
+	wrongService := services.NewAuthService(userRepo, sessionRepo, "different-secret-key")
+	_, err = wrongService.ValidateToken(tokens.AccessToken)
+	if err != domain.ErrUnauthorized {
+		t.Fatalf("expected ErrUnauthorized for token with wrong secret, got: %v", err)
+	}
 }

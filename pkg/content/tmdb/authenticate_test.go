@@ -1,17 +1,14 @@
 package tmdb
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
 
 func TestAuthenticate(t *testing.T) {
-
 	readToken := os.Getenv("TMDB_READ_TOKEN")
 	if readToken == "" {
-		fmt.Printf("[ERROR]: TMDB_READ_TOKEN env variable not provided.\n")
-		t.FailNow()
+		t.Skip("TMDB_READ_TOKEN env variable not provided, skipping external test.")
 	}
 
 	var tmdb Client
@@ -19,8 +16,6 @@ func TestAuthenticate(t *testing.T) {
 
 	isAuthenticated := tmdb.Authenticate()
 	if !isAuthenticated {
-		fmt.Printf("[ERROR] Could not authenticate user\n")
-		t.FailNow()
+		t.Fatal("Could not authenticate user with TMDB")
 	}
-
 }

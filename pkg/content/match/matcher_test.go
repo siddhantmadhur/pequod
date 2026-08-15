@@ -1,67 +1,44 @@
-package matcher
+package matcher_test
 
 import (
-	"fmt"
-	"regexp"
-	"strconv"
 	"testing"
+
+	"github.com/siddhantmadhur/pequod/pkg/content/match"
 )
 
 func TestGrabbingShowData(t *testing.T) {
-	season, err := regexp.Compile(`(S[0-9]{2,})|(Season\s[0-9]{1,})`)
-	num, err := regexp.Compile(`[0-9]+`)
-	episode, err := regexp.Compile(`(E[0-9]{2,})|(Episode\s[0-9]{1,})`)
-	if err != nil {
-		fmt.Printf("Regex did not compile\n")
-		t.FailNow()
+	tests := []struct {
+		path            string
+		expectedSeason  int
+		expectedEpisode int
+	}{
+		{
+			path:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 1 (2012-13)/TMNT - S01 E01 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
+			expectedSeason:  1,
+			expectedEpisode: 1,
+		},
+		{
+			path:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 2 (2012-13)/TMNT - S02 E01 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
+			expectedSeason:  2,
+			expectedEpisode: 1,
+		},
+		{
+			path:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 1 (2012-13)/TMNT - S01 E03 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
+			expectedSeason:  1,
+			expectedEpisode: 3,
+		},
 	}
 
-	type Value struct {
-		Name            string
-		Got             int
-		ExpectedSeason  int
-		ExpectedEpisode int
-	}
-
-	var seasons = []Value{
-		Value{
-			Name:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 1 (2012-13)/TMNT - S01 E01 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
-			ExpectedSeason:  1,
-			ExpectedEpisode: 1,
-		},
-		Value{
-			Name:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 2 (2012-13)/TMNT - S02 E01 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
-			ExpectedSeason:  2,
-			ExpectedEpisode: 1,
-		},
-		Value{
-			Name:            "/Teenage Mutant NINJA TURTLES [2012-2017]/Season 1 (2012-13)/TMNT - S01 E03 - Rise of the Turtles, Part 1 (720p Web-DL).mp4",
-			ExpectedSeason:  1,
-			ExpectedEpisode: 3,
-		},
-	}
-	for _, val := range seasons {
-		seasonString := season.FindString(val.Name)
-		val.Got, err = strconv.Atoi(num.FindString(seasonString))
+	for _, tt := range tests {
+		show, err := matcher.SeriesData(tt.path)
 		if err != nil {
-			t.Fail()
-			fmt.Printf("Did not get number\n")
+			t.Fatalf("unexpected error parsing %s: %v", tt.path, err)
 		}
-		if val.ExpectedSeason != val.Got {
-			t.Fail()
-			fmt.Printf("Got: %d, Expected: %d\n", val.Got, val.ExpectedSeason)
+		if show.SeasonNumber != tt.expectedSeason {
+			t.Errorf("expected season %d, got %d for %s", tt.expectedSeason, show.SeasonNumber, tt.path)
 		}
-
-		episodeString := episode.FindString(val.Name)
-		ep, err := strconv.Atoi(num.FindString(episodeString))
-		if err != nil {
-			t.Fail()
-			fmt.Printf("Did not get number\n")
-		}
-
-		if ep != val.ExpectedEpisode {
-			t.Fail()
-			fmt.Printf("Got: %d, Expected: %d\n", val.Got, val.ExpectedSeason)
+		if show.EpisodeNumber != tt.expectedEpisode {
+			t.Errorf("expected episode %d, got %d for %s", tt.expectedEpisode, show.EpisodeNumber, tt.path)
 		}
 	}
 }

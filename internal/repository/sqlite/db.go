@@ -18,7 +18,8 @@ func InitDB(persistentDir string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	db, err := sql.Open("sqlite3", persistentDir+"/storage.db")
+	dsn := persistentDir + "/storage.db?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=on"
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, err
 	}

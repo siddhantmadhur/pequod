@@ -1,7 +1,8 @@
 package transcoder
 
 import (
-	"bytes"
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -25,7 +27,6 @@ type FfmpegSession struct {
 	TranscodePath         string
 	MediaID               int64
 	StreamURL             string
-	CurrentBuffer         *bytes.Buffer
 	LastSegment           int
 	SegmentBuffer         *Segment
 	KillSignal            chan bool
@@ -48,7 +49,7 @@ func NewFfmpegSession(preset string, sourcePath string, currentPlaybackSecond in
 	session.TranscodePath = fmt.Sprintf("%s/%s", cacheDir, session.ID)
 	session.StreamURL = fmt.Sprintf("/media/%d/streams/%s/master.m3u8", session.MediaID, session.ID)
 
-	if err := os.MkdirAll(session.TranscodePath, 0777); err != nil {
+	if err := os.MkdirAll(session.TranscodePath, 0755); err != nil {
 		log.Printf("[ERROR]: failed to create transcode path %s: %v\n", session.TranscodePath, err)
 		return nil, err
 	}
@@ -76,17 +77,20 @@ func (f *FfmpegSession) Start() {
 		"-y", f.TranscodePath+"/master.m3u8",
 	)
 
-	if f.CurrentBuffer == nil {
-		var b bytes.Buffer
-		f.CurrentBuffer = &b
+	stderrPipe, err := proc.StderrPipe()
+	if err != nil {
+		log.Printf("[ERROR]: failed to create stderr pipe: %v\n", err)
 	}
-
-	proc.Stderr = io.MultiWriter(f.CurrentBuffer)
 
 	if err := proc.Start(); err != nil {
 		log.Printf("[ERROR]: ffmpeg process start error: %v\n", err)
+		return
 	}
 	f.Proc = proc
+
+	if stderrPipe != nil {
+		go f.trackStderr(stderrPipe)
+	}
 }
 
 func (f *FfmpegSession) Stop() {
@@ -100,71 +104,84 @@ func (f *FfmpegSession) Stop() {
 
 func (f *FfmpegSession) DoesSegmentExist(segment int64) bool {
 	path := fmt.Sprintf("%s/master%d.ts", f.TranscodePath, segment)
-	_, err := os.ReadFile(path)
-	return err == nil
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir() && info.Size() > 0
+}
+
+func (f *FfmpegSession) WaitForSegment(segment int64, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if f.DoesSegmentExist(segment) {
+			return true
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return f.DoesSegmentExist(segment)
 }
 
 func (f *FfmpegSession) SkipTo(segmentNo int64) error {
-	f.SegmentBuffer.Lock.Lock()
+	if f.SegmentBuffer == nil {
+		return errors.New("segment buffer not initialized")
+	}
+
+	if f.SegmentBuffer.Lock != nil {
+		f.SegmentBuffer.Lock.Lock()
+		defer f.SegmentBuffer.Lock.Unlock()
+	}
 
 	if f.DoesSegmentExist(segmentNo) {
-		f.SegmentBuffer.Lock.Unlock()
 		return nil
 	}
 
-	if f.LastSegment+5 > int(segmentNo) {
-		for !f.DoesSegmentExist(segmentNo) {
+	f.lock.Lock()
+	lastSeg := f.LastSegment
+	f.lock.Unlock()
+
+	if lastSeg+5 > int(segmentNo) {
+		if f.WaitForSegment(segmentNo, 5*time.Second) {
+			return nil
 		}
-		f.SegmentBuffer.Lock.Unlock()
-		return nil
 	}
 
 	if err := f.SegmentBuffer.AddNewSegment(segmentNo); err != nil {
-		f.SegmentBuffer.Lock.Unlock()
 		return err
 	}
 
 	segmentToSkipTo := f.SegmentBuffer.GetCurrentSegment(segmentNo)
+	if segmentToSkipTo == nil {
+		return errors.New("could not find segment range")
+	}
 	f.CurrentPlaybackSecond = segmentToSkipTo.StartSegment * 2
 	f.StopPlaybackSecond = segmentToSkipTo.EndSegment * 2
 
 	f.Start()
-	f.SegmentBuffer.Lock.Unlock()
 
-	for !f.DoesSegmentExist(segmentNo) {
-	}
-
-	for f.LastSegment < int(segmentNo) {
+	if !f.WaitForSegment(segmentNo, 10*time.Second) {
+		return fmt.Errorf("timeout waiting for segment %d", segmentNo)
 	}
 
 	return nil
 }
 
-func (f *FfmpegSession) TrackSegmentList() {
+func (f *FfmpegSession) trackStderr(r io.Reader) {
 	re := regexp.MustCompile(`master([0-9]+)\.ts`)
 	num := regexp.MustCompile(`[0-9]+`)
-	var line []byte
+	scanner := bufio.NewScanner(r)
 
-	for {
-		b, err := f.CurrentBuffer.ReadByte()
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			return
-		}
-		if b == '\n' {
-			lineStr := string(line)
-			if match := re.FindString(lineStr); match != "" {
-				if segStr := num.FindString(match); segStr != "" {
-					if segVal, parseErr := strconv.Atoi(segStr); parseErr == nil {
-						f.LastSegment = segVal
-					}
+	for scanner.Scan() {
+		lineStr := scanner.Text()
+		if match := re.FindString(lineStr); match != "" {
+			if segStr := num.FindString(match); segStr != "" {
+				if segVal, parseErr := strconv.Atoi(segStr); parseErr == nil {
+					f.lock.Lock()
+					f.LastSegment = segVal
+					f.lock.Unlock()
 				}
 			}
-			line = line[:0]
-		} else {
-			line = append(line, b)
 		}
 	}
+}
+
+func (f *FfmpegSession) TrackSegmentList() {
+	// Preserved for backwards compatibility with interface callers
 }
