@@ -52,7 +52,7 @@ export TMDB_READ_TOKEN=your_token       # required for metadata
 ### Run Locally
 
 ```sh
-go build -o ocelot .
+go build -o ocelot ./cmd/server
 ./ocelot
 ```
 
