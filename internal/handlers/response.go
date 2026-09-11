@@ -24,6 +24,21 @@ func HandleError(c echo.Context, err error) error {
 			Message: "Password does not match or there was an error",
 			Error:   err.Error(),
 		})
+	case errors.Is(err, domain.ErrPasswordTooShort), errors.Is(err, domain.ErrPasswordTooLong):
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: err.Error(),
+			Error:   err.Error(),
+		})
+	case errors.Is(err, domain.ErrInvalidUsername):
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: err.Error(),
+			Error:   err.Error(),
+		})
+	case errors.Is(err, domain.ErrUserAlreadyExists):
+		return c.JSON(http.StatusConflict, ErrorResponse{
+			Message: "A user with this username or role already exists",
+			Error:   err.Error(),
+		})
 	case errors.Is(err, domain.ErrInvalidInput):
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "Invalid input provided",

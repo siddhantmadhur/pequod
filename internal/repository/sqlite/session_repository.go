@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/siddhantmadhur/pequod/internal/domain"
 	"github.com/siddhantmadhur/pequod/internal/repository"
@@ -62,3 +63,16 @@ func (r *sessionRepository) GetByID(ctx context.Context, id string) (*domain.Ses
 		ClientVersion:    s.ClientVersion,
 	}, nil
 }
+
+func (r *sessionRepository) Delete(ctx context.Context, id string) error {
+	return r.queries.DeleteSession(ctx, id)
+}
+
+func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID int64) error {
+	return r.queries.DeleteSessionsByUserID(ctx, userID)
+}
+
+func (r *sessionRepository) DeleteExpired(ctx context.Context, before time.Time) error {
+	return r.queries.DeleteExpiredSessions(ctx, before)
+}
+

@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+// User permission levels / roles
+const (
+	RoleAdmin = 0
+	RoleUser  = 1
+)
+
 // User represents an authenticated user in the system.
 type User struct {
 	UID             int64  `json:"uid"`
@@ -13,6 +19,7 @@ type User struct {
 	RefreshToken    string `json:"-"`
 	ProfilePicture  string `json:"profile_picture,omitempty"`
 	PermissionLevel int    `json:"-"`
+	SessionID       string `json:"-"`
 }
 
 // Profile represents the user entity stored in the database.
