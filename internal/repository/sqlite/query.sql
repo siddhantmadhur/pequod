@@ -34,6 +34,18 @@ RETURNING *;
 SELECT * FROM sessions
 WHERE id = ?;
 
+-- name: DeleteSession :exec
+DELETE FROM sessions
+WHERE id = ?;
+
+-- name: DeleteSessionsByUserID :exec
+DELETE FROM sessions
+WHERE user_id = ?;
+
+-- name: DeleteExpiredSessions :exec
+DELETE FROM sessions
+WHERE refresh_expires_at < ?;
+
 -- name: CreateMediaLibrary :one
 INSERT INTO media_library(created_at, name, description, device_path, media_type, owner_id) 
 VALUES (?, ?, ?, ?, ?, ?)

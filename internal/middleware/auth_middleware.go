@@ -32,17 +32,17 @@ func CurrentUser(c echo.Context) *domain.User {
 	return u
 }
 
-// RequireAuth ensures that the incoming request contains a valid Bearer JWT.
+// RequireAuth ensures that the incoming request contains a valid Bearer JWT or ?token= query parameter.
 func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var tokenStr string
 		authHeader := c.Request().Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"message": "Authorization token not provided",
-			})
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+		} else if qToken := c.QueryParam("token"); qToken != "" {
+			tokenStr = qToken
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenStr == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{
 				"message": "Authorization token not provided",
@@ -62,7 +62,30 @@ func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// RequireAuthOrWizard allows unauthenticated access if setup wizard is active.
+// RequireAdmin ensures that the authenticated user possesses administrator privileges (PermissionLevel == 0).
+func (m *AuthMiddleware) RequireAdmin(next echo.HandlerFunc) echo.HandlerFunc {
+	return m.RequireAuth(func(c echo.Context) error {
+		user := CurrentUser(c)
+		if user == nil || user.PermissionLevel != 0 {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": "Administrator privileges required",
+			})
+		}
+		return next(c)
+	})
+}
+
+// RequireAdminOrWizard allows unauthenticated access if the setup wizard is active, or requires admin otherwise.
+func (m *AuthMiddleware) RequireAdminOrWizard(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !m.serverService.IsWizardCompleted() {
+			return next(c)
+		}
+		return m.RequireAdmin(next)(c)
+	}
+}
+
+// RequireAuthOrWizard allows unauthenticated access if setup wizard is active, or requires authentication otherwise.
 func (m *AuthMiddleware) RequireAuthOrWizard(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if !m.serverService.IsWizardCompleted() {

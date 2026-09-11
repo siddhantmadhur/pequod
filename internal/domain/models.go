@@ -13,6 +13,7 @@ type User struct {
 	RefreshToken    string `json:"-"`
 	ProfilePicture  string `json:"profile_picture,omitempty"`
 	PermissionLevel int    `json:"-"`
+	SessionID       string `json:"-"`
 }
 
 // Profile represents the user entity stored in the database.

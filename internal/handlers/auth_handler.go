@@ -102,3 +102,15 @@ func (h *AuthHandler) GetUser(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, currentUser)
 }
+
+func (h *AuthHandler) Logout(c echo.Context) error {
+	currentUser := middleware.CurrentUser(c)
+	if currentUser != nil && currentUser.SessionID != "" {
+		_ = h.authService.Logout(c.Request().Context(), currentUser.SessionID)
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Successfully logged out",
+	})
+}
+

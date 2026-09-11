@@ -1,3 +1,4 @@
 bin
 storage.db
 .tmp
+.DS_Store

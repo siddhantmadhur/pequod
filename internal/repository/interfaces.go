@@ -23,6 +23,9 @@ type UserRepository interface {
 type SessionRepository interface {
 	Create(ctx context.Context, session *domain.Session) error
 	GetByID(ctx context.Context, id string) (*domain.Session, error)
+	Delete(ctx context.Context, id string) error
+	DeleteByUserID(ctx context.Context, userID int64) error
+	DeleteExpired(ctx context.Context, before time.Time) error
 }
 
 // CreateLibraryParams contains fields to create a media library record.
